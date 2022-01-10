@@ -79,29 +79,20 @@ class Laplace3D:
         idx_back = self.get_idx_back()
         idx_V = self.get_idx_V()
 
-        count = [0,0,0]
-
         for i,element in enumerate(mesh):
-            print('*********')
             
-            #print(element)
             if element[3] == 0 or element[3] == self.get_H1(): #top or bottom
-                print('entra 1')
-                print(i)
-                print(element[8:])
-                print('x:{};y:{},z:{}'.format(element[1],element[2],element[3]))
                 charge_vector[i] = element[idx_V]
                 matrix[i][i] = h**2
                 count[0] = count[0]+1
                 
             elif '-1' in element[idx_front:]: #sides
-                print('entra 2')
                 ## Obtaining normal vector
                 count[1] = count[1]+1
                 
-                #n_c = np.array([1,-1*(self.get_f()(element[3])[1])])
-                n_c = np.array([1,0.5])
-                n_c =  n_c/alg.norm(n_c,2)
+                n_c = np.array([1,-1*(self.get_f()(element[3])[1])])
+                #n_c = np.array([1,0.5])
+                #n_c =  n_c/alg.norm(n_c,2)
                 
                 cos = np.cos(np.arctan(element[2]/element[1]))
                 sin = np.sin(np.arctan(element[2]/element[1]))
@@ -110,37 +101,18 @@ class Laplace3D:
                 ## Computing Grad
                 list_idx = [[idx_front,idx_back],
                             [idx_right,idx_left],
-                            [idx_up,idx_down]]
-                
-                print(i)
-                print(element[8:])
-                print('x:{};y:{},z:{}'.format(element[1],element[2],element[3]))
-                print('nx:{};ny:{},nz:{}'.format(n[0],n[1],n[2]))
+                            [idx_up,idx_down]]       
                     
                 for g, [idx_1, idx_0] in enumerate(list_idx):
 
                     
                     neighbor_1, neighbor_0, den = set_address(element,mesh[:,0],i,idx_1,idx_0)
-                    print('N1 old value: {}, N0 old value: {}'.format(matrix[i][neighbor_1],matrix[i][neighbor_0]))
-
+                 
                     matrix[i][neighbor_1] = matrix[i][neighbor_1] + (h*n[g]/den)
                     matrix[i][neighbor_0] = matrix[i][neighbor_0] - (h*n[g]/den)
-
-                    if idx_1 + idx_0 == 17:
-                        print('X-idx1:{};idx0: {}; N1:{}; N2:{}; n[g]:{}; den:{} '.format(idx_1,idx_0,neighbor_1,neighbor_0,n[g],den))
-                        
-                    elif idx_1 + idx_0 == 21:
-                        print('Y-idx1:{};idx0: {};N1:{}; N2:{}; n[g]:{}; den:{} '.format(idx_1,idx_0,neighbor_1,neighbor_0,n[g],den))
-                    else:
-                        print('Z--idx1:{};idx0: {};N1:{}; N2:{}; n[g]:{}; den:{} '.format(idx_1,idx_0,neighbor_1,neighbor_0,n[g],den))
-                    print('N1 new value: {}, N0 new value: {}'.format(matrix[i][neighbor_1],matrix[i][neighbor_0]))
          
             else:
-                print('entra 3')
-                print(i)
-                print(element[8:])
-                print('x:{};y:{},z:{}'.format(element[1],element[2],element[3]))
-                count[2] = count[2]+1
+                
                 up_neighbor = np.where(mesh[:,0]==element[idx_up])[0][0]
                 down_neighbor = np.where(mesh[:,0]==element[idx_down])[0][0]
                 left_neighbor = np.where(mesh[:,0]==element[idx_left])[0][0]
@@ -155,13 +127,10 @@ class Laplace3D:
                 matrix[i][front_neighbor] = 1
                 matrix[i][back_neighbor] = 1
                 matrix[i][i] = -6
-
-        print('*******')
-        print(count)
+       
         inv_matrix = alg.inv(matrix)
         potentials = (inv_matrix@charge_vector)*(h**2)
         mesh[:,idx_V] = potentials
-
          
         self.set_mesh(mesh)
         self.compile_grad()
@@ -333,23 +302,6 @@ class Laplace3D:
                   np.asarray(Jx[::3,::3,1::3],dtype='float'),np.asarray(Jy[::3,::3,1::3],dtype='float'),np.asarray(Jz[::3,::3,1::3],dtype='float'),
                   color = 'k',alpha = 0.3,length=h,normalize = True)
         ax.set_title('Densidades de Corrente ($\\frac{A}{cm^2}$)')
-        '''H, R = self.get_limfun()
-        ax[1].plot(x,y,'--', color = 'gray', linewidth =0.7,alpha = 0.6)
-        ax[1].plot(x,-1*y,'--', color = 'gray',linewidth =0.7,alpha = 0.6)'''
-
-
-        
-        #h = self.get_h()
-            
-        # set the limits of the plot to the limits of the data
-        #ax.axis([X.min(), X.max(), Y.min(), Y.max()])
-            
-            
-        #x,y = self.get_limfun()
-        
-        #ax.plot(x,y,'-', color = 'k', linewidth =4,alpha = 0.7)
-        #ax.plot(x,-1*y,'-', color = 'k',linewidth =4,alpha = 0.7)
-        
 
         plt.savefig(name + '.png')
 
@@ -390,13 +342,7 @@ class Laplace3D:
                 fig.colorbar(c, ax=ax[e], shrink = 0.7, label = 'Potencial (V)', aspect = 20)
             except: None
             ax[e].set_title('d = %.2f cm' %(val))
-            
-            
-            '''ax[1].quiver(X[1::2],Y[1::2],1e4*Jx[1::2],1e4*Jy[1::2],color = 'k',angles='xy', scale_units='xy', scale=2)
-            ax[1].set_title('Densidades de Corrente ($\\frac{A}{cm^2}$)')
-            x, y = self.get_limfun()
-            ax[1].plot(x,y,'--', color = 'gray', linewidth =0.7,alpha = 0.6)
-            ax[1].plot(x,-1*y,'--', color = 'gray',linewidth =0.7,alpha = 0.6)'''
+
             ax[e].spines["top"].set_visible(False)
             ax[e].spines["right"].set_visible(False)
             
@@ -537,14 +483,3 @@ class Laplace3D:
 
     def get_I(self):
         return self.__I
-
-
-        
-        
-
-    
-        
-        
-        
-
-    
